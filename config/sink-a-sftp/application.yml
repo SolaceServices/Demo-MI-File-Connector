@@ -1,0 +1,63 @@
+# =============================================================================
+# SINK connector overlay  (solace -> file)  — destination A, SFTP variant
+# Consumes q.fc.dest-a and writes the reassembled file to SFTP server sftp-dest-a:/outbound.
+# =============================================================================
+spring:
+  application:
+    name: SINK_DEST_A
+  cloud:
+    config:
+      enabled: false
+    stream:
+      bindings:
+        input-0:
+          destination: ${FC_DEST_A_QUEUE}
+          binder: solace
+        output-0:
+          destination: /outbound/${FILE(FNAME)}
+          binder: file
+
+file:
+  sink:
+    general:
+      adapter_id: SINK_DEST_A
+      auto_create_directory: 1
+      dest_file_name_type: 8
+      state_backup_path: /tmp/sink_state.cfg
+      eod_time_sec: -1
+      alwaysVerifyData: false
+      alwaysMatchCompleteEvent: false
+    # --- Push to this destination's SFTP server ---
+    ftp_settings:
+      enabled: 0
+    sftp_settings:
+      enabled: 1
+      ip: sftp-dest-a
+      port: 22
+      user: ${FTP_USER}
+      password: ${FTP_PASSWORD}
+      strictHostKeyChecking: "no"
+    gcs:
+      enabled: 0
+
+solace:
+  connector:
+    security:
+      enabled: false
+    error:
+      handle: stop_all
+    workflows:
+      '0':
+        enabled: true
+        acknowledgment:
+          publish-async: true
+    management:
+      leader-election:
+        mode: standalone
+  java:
+    host: ${SOLACE_SMF_URL}
+    msg-vpn: ${SOLACE_VPN_NAME}
+    client-username: ${SOLACE_CLIENT_USER}
+    client-password: ${SOLACE_CLIENT_PWD}
+    connectRetries: -1
+    reconnectRetries: -1

@@ -1,0 +1,9 @@
+{
+  "Global": {
+    "Chroot": { "Directory": "%h", "StartPath": "outbound" },
+    "Directories": ["outbound"]
+  },
+  "Users": [
+    { "Username": "demo", "Password": "demo", "UID": 1001, "GID": 100 }
+  ]
+}

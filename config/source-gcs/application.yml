@@ -1,0 +1,83 @@
+# =============================================================================
+# SOURCE connector (file -> solace) — Google Cloud Storage
+# Reads a GCS bucket recursively and routes each object to a destination by its
+# top-level "folder" (object-name prefix): destA/… -> solace/fc/source/demo/destA, etc.
+# After replication each object is MOVED to a SEPARATE archive bucket (dedup).
+#
+# EDIT before first run:
+#   - gcs.projectId          -> comes from .env (GCS_PROJECT_ID) ; nothing to edit here
+#   - postProcessFileMovePathExpr -> put YOUR archive bucket (see the line marked EDIT)
+#   - the SOURCE bucket name -> in file_paths.cfg (see that file)
+# =============================================================================
+spring:
+  application:
+    name: SOURCE_DEMO
+  cloud:
+    config:
+      enabled: false
+    stream:
+      bindings:
+        input-0:
+          destination: /app/external/spring/config/file_paths.cfg
+          binder: file
+        output-0:
+          destination: ${FC_BASE_TOPIC}                    # solace/fc/source/demo
+          binder: solace
+
+file:
+  source:
+    scheduler:
+      restart_time_sec: 15          # re-scan the bucket every 15s
+    general:
+      adapter_id: SOURCE_DEMO
+      file_type: 4                  # recursive; single dynamic routing line
+      # NOTE: keep the default chunk size. Larger chunks (maxFileTransferSize) were measured
+      # to REDUCE throughput against a cloud broker — do not set it without re-testing.
+      ignoreEmptyFiles: true
+      clear_state_on_eod: 1
+      eod_time_sec: -1
+      multiple_files_flag: 1
+      # EDIT: replace the bucket below with YOUR archive bucket (must be a DIFFERENT bucket
+      # than the source; the source lists the whole source bucket, so an in-bucket archive/
+      # prefix would be re-scanned forever). ${FILE(FPATH_R)} = object path within the bucket.
+      postProcessFileMovePathExpr: "gs://REPLACE-WITH-YOUR-ARCHIVE-BUCKET/${FILE(FPATH_R)}"
+    file_to_event:
+      enabled: 0
+    ftp_settings:
+      enabled: 0
+    sftp_settings:
+      enabled: 0
+    # --- Pull from Google Cloud Storage ---
+    gcs:
+      enabled: 1
+      projectId: ${GCS_PROJECT_ID}               # from .env
+      credentialsFilePath: /app/gcs-key.json     # SA key mounted by docker-compose (GCS_KEY_FILE)
+    # --- Checkpoint / Last Value Queue ---
+    solace_out:
+      lvq: ${FC_SOURCE_LVQ}
+      destination: ${FC_BASE_TOPIC}
+
+solace:
+  connector:
+    security:
+      enabled: false
+    error:
+      handle: stop_all
+    workflows:
+      '0':
+        enabled: true
+        acknowledgment:
+          publish-async: true
+    management:
+      leader-election:
+        mode: standalone
+  java:
+    host: ${SOLACE_SMF_URL}
+    msg-vpn: ${SOLACE_VPN_NAME}
+    client-username: ${SOLACE_CLIENT_USER}
+    client-password: ${SOLACE_CLIENT_PWD}
+    connectRetries: -1
+    reconnectRetries: -1
+logging:
+  level:
+    com.solacecoe.spring.cloud.stream.binders.file: INFO

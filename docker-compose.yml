@@ -1,0 +1,111 @@
+# Solace File Connector — GCS source -> SFTP sinks, folder routing.
+# Single self-contained stack: 3 destination SFTP servers + 1 source + 3 sinks.
+# All values come from .env (copy .env.example -> .env and fill it in).
+#
+#   docker compose up -d
+#
+name: solace-fc-gcs-sftp
+
+# ---------------------------------------------------------------------------
+# Destination SFTP servers (emberstack/sftp — multi-arch: amd64 + arm64).
+# User demo/demo, chrooted, exposes /outbound. Ports 2222/2223/2224 on the host.
+# ---------------------------------------------------------------------------
+x-sftp: &sftp
+  image: emberstack/sftp:5.1.71     # pinned (multi-arch amd64/arm64); avoid :latest drift
+  restart: unless-stopped
+  networks: [fcnet]
+
+# ---------------------------------------------------------------------------
+# File Connector (Solace image — obtain it from Solace, see README).
+# amd64 image; on Apple Silicon it runs under emulation.
+# ---------------------------------------------------------------------------
+x-connector: &connector
+  image: ${MI_IMAGE}
+  platform: linux/amd64
+  restart: unless-stopped
+  networks: [fcnet]
+
+x-broker-env: &broker-env
+  SOLACE_SMF_URL: "tcps://${SOLACE_HOSTNAME}:55443"
+  SOLACE_VPN_NAME: "${SOLACE_VPN_NAME}"
+  SOLACE_CLIENT_USER: "${SOLACE_CLIENT_USER}"
+  SOLACE_CLIENT_PWD: "${SOLACE_CLIENT_PWD}"
+  FTP_USER: "${FTP_USER}"
+  FTP_PASSWORD: "${FTP_PASSWORD}"
+  FC_BASE_TOPIC: "${FC_BASE_TOPIC}"
+  FC_SOURCE_LVQ: "${FC_SOURCE_LVQ}"
+  FC_DEST_A_QUEUE: "${FC_DEST_A_QUEUE}"
+  FC_DEST_B_QUEUE: "${FC_DEST_B_QUEUE}"
+  FC_DEST_C_QUEUE: "${FC_DEST_C_QUEUE}"
+
+services:
+  sftp-dest-a:
+    <<: *sftp
+    container_name: sftp-dest-a
+    hostname: sftp-dest-a
+    ports: ["2222:22"]
+    volumes:
+      - ./config/sftp/dest.sftp.json:/app/config/sftp.json:ro
+      - sftp-dest-a-data:/home/demo
+  sftp-dest-b:
+    <<: *sftp
+    container_name: sftp-dest-b
+    hostname: sftp-dest-b
+    ports: ["2223:22"]
+    volumes:
+      - ./config/sftp/dest.sftp.json:/app/config/sftp.json:ro
+      - sftp-dest-b-data:/home/demo
+  sftp-dest-c:
+    <<: *sftp
+    container_name: sftp-dest-c
+    hostname: sftp-dest-c
+    ports: ["2224:22"]
+    volumes:
+      - ./config/sftp/dest.sftp.json:/app/config/sftp.json:ro
+      - sftp-dest-c-data:/home/demo
+
+  fc-source:
+    <<: *connector
+    container_name: fc-source
+    environment:
+      <<: *broker-env
+      GCS_PROJECT_ID: "${GCS_PROJECT_ID}"
+    volumes:
+      - ./config/source-gcs:/app/external/spring/config:ro
+      - ${GCS_KEY_FILE}:/app/gcs-key.json:ro          # SA JSON key (host path in .env)
+    ports: ["8090:8090"]                               # actuator health/metrics
+    depends_on: [sftp-dest-a, sftp-dest-b, sftp-dest-c]
+
+  fc-sink-a:
+    <<: *connector
+    container_name: fc-sink-a
+    environment: *broker-env
+    volumes:
+      - ./config/sink-a-sftp:/app/external/spring/config:ro
+    ports: ["8091:8090"]
+    depends_on: [sftp-dest-a]
+  fc-sink-b:
+    <<: *connector
+    container_name: fc-sink-b
+    environment: *broker-env
+    volumes:
+      - ./config/sink-b-sftp:/app/external/spring/config:ro
+    ports: ["8092:8090"]
+    depends_on: [sftp-dest-b]
+  fc-sink-c:
+    <<: *connector
+    container_name: fc-sink-c
+    environment: *broker-env
+    volumes:
+      - ./config/sink-c-sftp:/app/external/spring/config:ro
+    ports: ["8093:8090"]
+    depends_on: [sftp-dest-c]
+
+volumes:
+  sftp-dest-a-data:
+  sftp-dest-b-data:
+  sftp-dest-c-data:
+
+networks:
+  fcnet:
+    name: fcnet

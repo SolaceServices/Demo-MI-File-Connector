@@ -1,0 +1,12 @@
+# Secrets & credentials — never commit
+.env
+*.json.key
+gcs-key.json
+*-key.json
+*.pem
+*.p12
+
+# Local test artifacts
+*.log
+run-*.log
+samples/*.bin
