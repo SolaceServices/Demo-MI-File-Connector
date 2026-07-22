@@ -115,6 +115,52 @@ Verify arrival:
 - **Archive**: `gcloud storage ls gs://<archive-bucket>/**` — the source object was moved there
   (the source bucket empties out).
 
+### 5.1 Sending test files of different sizes (1 KB → 200 MB)
+
+Generate a set of test files locally (random, incompressible content — the `dd` commands are portable
+on macOS and Linux), then upload them to the source bucket.
+
+```bash
+BUCKET=your-source-bucket
+
+# Avoid gcloud "parallel composite" uploads: their temporary objects can be scanned by the
+# source and then vanish, crashing it. Disable once (see "Known caveats").
+gcloud config set storage/parallel_composite_upload_enabled False
+
+# 1) generate the files (1 KB, 64 KB, 1 MB, 10 MB, 50 MB, 100 MB, 200 MB)
+mkdir -p /tmp/fc-test
+dd if=/dev/urandom of=/tmp/fc-test/blob-1kb.bin   bs=1024    count=1   2>/dev/null
+dd if=/dev/urandom of=/tmp/fc-test/blob-64kb.bin  bs=1024    count=64  2>/dev/null
+dd if=/dev/urandom of=/tmp/fc-test/blob-1mb.bin   bs=1048576 count=1   2>/dev/null
+dd if=/dev/urandom of=/tmp/fc-test/blob-10mb.bin  bs=1048576 count=10  2>/dev/null
+dd if=/dev/urandom of=/tmp/fc-test/blob-50mb.bin  bs=1048576 count=50  2>/dev/null
+dd if=/dev/urandom of=/tmp/fc-test/blob-100mb.bin bs=1048576 count=100 2>/dev/null
+dd if=/dev/urandom of=/tmp/fc-test/blob-200mb.bin bs=1048576 count=200 2>/dev/null
+
+# 2) upload them, spread across the three destinations (prefix = routing key)
+gcloud storage cp /tmp/fc-test/blob-1kb.bin   gs://$BUCKET/destA/
+gcloud storage cp /tmp/fc-test/blob-64kb.bin  gs://$BUCKET/destB/
+gcloud storage cp /tmp/fc-test/blob-1mb.bin   gs://$BUCKET/destC/
+gcloud storage cp /tmp/fc-test/blob-10mb.bin  gs://$BUCKET/destA/
+gcloud storage cp /tmp/fc-test/blob-50mb.bin  gs://$BUCKET/destB/
+gcloud storage cp /tmp/fc-test/blob-100mb.bin gs://$BUCKET/destC/
+gcloud storage cp /tmp/fc-test/blob-200mb.bin gs://$BUCKET/destA/
+```
+
+To send them all to a single destination instead, upload every file to the same prefix:
+```bash
+gcloud storage cp /tmp/fc-test/*.bin gs://$BUCKET/destA/
+```
+
+Verify integrity at the destination (size + checksum) — e.g. for the 200 MB file on dest-a:
+```bash
+shasum -a 256 /tmp/fc-test/blob-200mb.bin
+sftp -P 2222 demo@127.0.0.1:/outbound/blob-200mb.bin /tmp/ && shasum -a 256 /tmp/blob-200mb.bin
+```
+
+> Larger files take longer to appear (each is split into ~1 MB persistent messages published to the
+> broker). Watch progress with the `docker logs fc-source` command above.
+
 ## 6. How it works — configuration reference
 
 The settings below are deliberate; changing them will break routing.
