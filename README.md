@@ -212,3 +212,87 @@ scripts/verify.sh             # health + queue check
 docker compose down            # add -v to also drop the SFTP data volumes
 ./broker/semp-setup.sh teardown
 ```
+
+## 11. Target architecture — edge brokers + VPN bridges (design note)
+
+This section describes the **target multi-site deployment**, not the single-broker test stack above.
+No config for it ships in this package; it documents the intended design so it can be built later.
+
+### Goal
+Keep the **GCS source and the source connector centralised** on the current **cloud broker**, but
+move each **destination close to where its files must land**: one **local/edge Solace broker per
+SFTP destination**, co-located with that SFTP server and its **sink connector**. Each destination's
+**sink queue is deported to its edge broker**; messages travel from the central broker to each edge
+over a **Message VPN bridge**.
+
+```
+                 ┌───────────────────────── central (cloud) broker ─────────────────────────┐
+   GCS  ──►  fc-source  ──►  publishes solace/fc/source/demo[/destX]                          │
+                 │            bridge queue per site (durable, exclusive) on the CLOUD:         │
+                 │              q.bridge.siteA  ⟵ subs: …/demo/destA  + …/demo                 │
+                 └───────────────────────────────┬───────────────────────────────────────────┘
+                         VPN bridge (one TCP conn, TLS 55443), INITIATED BY THE EDGE
+                                                  │  (edge dials out to cloud)
+              ┌───────────────────────────────────┼───────────────────────────────┐
+   edge broker A (site A)                 edge broker B (site B)            edge broker C …
+   q.fc.dest-a (durable) ⟵ subs …/destA,…/demo    q.fc.dest-b ⟵ …/destB,…/demo     …
+   fc-sink-a  ──►  local SFTP  /outbound          fc-sink-b  ──►  local SFTP        …
+```
+
+### The bridge and its direction of initiation
+A **Message VPN bridge** links two Message VPNs and forwards messages that match the bridge's
+subscriptions (or its bridge queue) from a **remote** VPN to a **local** VPN. Crucially, you create
+the bridge on the **local** broker; the broker then **opens a single outbound client connection to
+the remote broker** (the bridge authenticates like a normal client).
+
+Therefore the bridge is **defined on each edge broker**, with the **remote = the central cloud
+broker**. The edge broker is the **initiator** — it dials **out** to the cloud (TLS, port 55443).
+This fits networks where edge sites are behind NAT/firewalls and only **outbound** connectivity to
+the cloud is permitted; no inbound port needs to be opened at the edge.
+
+### Deporting a sink queue via bridge subscriptions (Guaranteed messaging)
+The sink's data is **persistent**, so the bridge must carry **Guaranteed** messages. Per Solace,
+that requires a **bridge queue on the REMOTE (cloud) VPN** plus a matching **durable endpoint on the
+LOCAL (edge) VPN**:
+
+1. **On the cloud broker (remote), per site** — create a durable, **exclusive** *bridge queue*
+   (e.g. `q.bridge.siteA`) and give it the **same subscriptions the sink needs**:
+   `solace/fc/source/demo/destA` (data multiparts) **and** `solace/fc/source/demo` (the run START
+   event). This queue attracts exactly site A's traffic.
+2. **On the edge broker (local)** — create the bridge, point it at the cloud VPN and specify that
+   bridge queue as the **remote message spool queue**. When the bridge comes up, a **consumer flow
+   binds to the remote queue** and transports its Guaranteed messages over the single connection to
+   the edge.
+3. **On the edge VPN** — the **sink queue `q.fc.dest-a` lives here** (this is the "deported" queue),
+   as a **durable queue** subscribed to the same topics (`…/destA` + `…/demo`). Because a matching
+   **durable** endpoint exists locally, the messages stay Guaranteed (spooled). The local
+   `fc-sink-a` consumes from it and writes to the local SFTP server.
+
+> If the edge VPN had only *client* (non-durable) subscriptions, the bridged messages would be
+> downgraded to Direct (not persisted); with **no** matching subscription they are discarded. So the
+> deported sink queue **must** be a durable queue with the matching subscriptions.
+
+### Notes / guardrails (from Solace docs)
+- **One bridge queue per inbound bridge** on the cloud (don't share a bridge queue across sites).
+- Keep **`alwaysMatchCompleteEvent: false`** on every sink: the base-topic (`…/demo`) carries the
+  shared run START/COMPLETE, so each edge still receives events for runs targeting other sites and
+  must ignore the non-matching COMPLETE.
+- **No message loss**: leave `reject-msg-to-sender-on-discard` enabled on the local durable queues
+  (default for queues). A Guaranteed message only unspools from the cloud bridge queue once every
+  matching edge endpoint has spooled it.
+- The bridge connection needs **TLS to the cloud** (port 55443) and a client username whose **client
+  profile allows bridge connections**.
+- In Solace Cloud, each service is a single Message VPN, so bridges are always **service-to-service**
+  (cloud service ↔ each edge service).
+- Alternative: Solace **Dynamic Message Routing (DMR)** can replace a static VPN bridge for the same
+  cloud↔edge delivery; evaluate it if you prefer dynamic subscription propagation over static bridge
+  subscriptions.
+
+### What changes vs. this package
+- The **source side is unchanged** (GCS + `fc-source` stay on the cloud broker).
+- Per site, run only the **sink half** against the **edge broker**: the edge `q.fc.dest-x` (deported),
+  `fc-sink-x` pointed at the edge broker, and the local SFTP server. The edge broker's bridge (to the
+  cloud) + the cloud-side bridge queue replace the direct cloud consumption used in the test stack.
+
+Sources: Solace docs — [Message VPN Bridges](https://docs.solace.com/Features/VPN/Message-VPN-Bridges-Overview.htm),
+[Configuring Message VPN Bridges](https://docs.solace.com/Features/VPN/Managing-Message-VPN-Bridges.htm).
