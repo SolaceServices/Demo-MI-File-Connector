@@ -1,0 +1,126 @@
+<svg viewBox="0 0 1200 690" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: 'Figtree','Segoe UI',Helvetica,Arial,sans-serif; }
+    .h  { font-weight:700; fill:#093B5F; }
+    .sub{ fill:#093B5F; opacity:.6; }
+    .white{ fill:#FFFFFF; }
+  </style>
+
+  <defs>
+    <marker id="arrGreen" markerWidth="18" markerHeight="18" refX="1" refY="9" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L18,9 L0,18 z" fill="#00C895"/>
+    </marker>
+    <marker id="arrBlue" markerWidth="18" markerHeight="18" refX="1" refY="9" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L18,9 L0,18 z" fill="#093B5F"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="690" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="32" y="42" font-size="26" class="h">Utech Target Architecture — Solace File Connector</text>
+  <text x="32" y="70" font-size="14" class="sub">Bidirectional file flow · fan-out central → POS · fan-in POS → central</text>
+  <rect x="32" y="82" width="120" height="4" rx="2" fill="#00C895"/>
+
+  <!-- ============ CENTRAL container ============ -->
+  <rect x="32" y="104" width="384" height="416" rx="14" fill="#F4F4F4" stroke="#D6D6D6" stroke-width="1.5"/>
+  <path d="M 46 104 h 356 a 14 14 0 0 1 14 14 v 28 h -384 v -28 a 14 14 0 0 1 14 -14 z" fill="#093B5F"/>
+  <text x="224" y="131" text-anchor="middle" font-size="15" letter-spacing="1" class="white h">CENTRAL — GCP</text>
+
+  <!-- GCS card -->
+  <rect x="58" y="162" width="332" height="96" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="58" y="164" width="6" height="92" rx="3" fill="#00C895"/>
+  <text x="82" y="196" font-size="16" class="h">Google Cloud Storage (GCS)</text>
+  <text x="82" y="220" font-size="12.5" class="sub">Central file storage</text>
+
+  <!-- MI card -->
+  <rect x="58" y="274" width="332" height="96" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="58" y="276" width="6" height="92" rx="3" fill="#00C895"/>
+  <text x="82" y="308" font-size="16" class="h">File Micro-Integration × N</text>
+  <text x="82" y="332" font-size="12.5" class="sub">Connector pool (source + sink)</text>
+
+  <!-- Broker card -->
+  <rect x="58" y="386" width="332" height="96" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="58" y="388" width="6" height="92" rx="3" fill="#00C895"/>
+  <text x="82" y="420" font-size="16" class="h">PubSub+ Cloud Broker</text>
+  <text x="82" y="444" font-size="12.5" class="sub">10k connections service class</text>
+
+  <!-- internal connectors -->
+  <line x1="224" y1="258" x2="224" y2="274" stroke="#B7C0C9" stroke-width="2"/>
+  <line x1="224" y1="370" x2="224" y2="386" stroke="#B7C0C9" stroke-width="2"/>
+
+  <!-- ============ POS container ============ -->
+  <rect x="700" y="104" width="468" height="416" rx="14" fill="#F4F4F4" stroke="#D6D6D6" stroke-width="1.5"/>
+  <path d="M 714 104 h 440 a 14 14 0 0 1 14 14 v 28 h -468 v -28 a 14 14 0 0 1 14 -14 z" fill="#093B5F"/>
+  <text x="934" y="131" text-anchor="middle" font-size="15" letter-spacing="1" class="white h">POINTS OF SALE (POS) — × 1500</text>
+
+  <!-- POS 1 -->
+  <rect x="724" y="162" width="420" height="96" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="724" y="164" width="6" height="92" rx="3" fill="#00C895"/>
+  <text x="746" y="192" font-size="15" class="h">POS 1 — Rocky Linux VM</text>
+  <rect x="746" y="210" width="118" height="30" rx="15" fill="#00C895"/>
+  <text x="805" y="230" text-anchor="middle" font-size="12" font-weight="600" class="white">Edge broker</text>
+  <rect x="874" y="210" width="118" height="30" rx="15" fill="#093B5F"/>
+  <text x="933" y="230" text-anchor="middle" font-size="12" font-weight="600" class="white">Local MI</text>
+  <rect x="1002" y="210" width="118" height="30" rx="15" fill="#EAEAEA"/>
+  <text x="1061" y="230" text-anchor="middle" font-size="12" font-weight="600" fill="#093B5F">SFTP / FTP</text>
+
+  <!-- POS 2 -->
+  <rect x="724" y="270" width="420" height="96" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="724" y="272" width="6" height="92" rx="3" fill="#00C895"/>
+  <text x="746" y="300" font-size="15" class="h">POS 2 — Rocky Linux VM</text>
+  <rect x="746" y="318" width="118" height="30" rx="15" fill="#00C895"/>
+  <text x="805" y="338" text-anchor="middle" font-size="12" font-weight="600" class="white">Edge broker</text>
+  <rect x="874" y="318" width="118" height="30" rx="15" fill="#093B5F"/>
+  <text x="933" y="338" text-anchor="middle" font-size="12" font-weight="600" class="white">Local MI</text>
+  <rect x="1002" y="318" width="118" height="30" rx="15" fill="#EAEAEA"/>
+  <text x="1061" y="338" text-anchor="middle" font-size="12" font-weight="600" fill="#093B5F">SFTP / FTP</text>
+
+  <!-- ellipsis -->
+  <text x="934" y="392" text-anchor="middle" font-size="22" font-weight="700" fill="#093B5F">⋮</text>
+
+  <!-- POS 1500 -->
+  <rect x="724" y="404" width="420" height="96" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="724" y="406" width="6" height="92" rx="3" fill="#00C895"/>
+  <text x="746" y="434" font-size="15" class="h">POS 1500 — Rocky Linux VM</text>
+  <rect x="746" y="452" width="118" height="30" rx="15" fill="#00C895"/>
+  <text x="805" y="472" text-anchor="middle" font-size="12" font-weight="600" class="white">Edge broker</text>
+  <rect x="874" y="452" width="118" height="30" rx="15" fill="#093B5F"/>
+  <text x="933" y="472" text-anchor="middle" font-size="12" font-weight="600" class="white">Local MI</text>
+  <rect x="1002" y="452" width="118" height="30" rx="15" fill="#EAEAEA"/>
+  <text x="1061" y="472" text-anchor="middle" font-size="12" font-weight="600" fill="#093B5F">SFTP / FTP</text>
+
+  <!-- ============ Flows between central and POS ============ -->
+  <text x="556" y="286" text-anchor="middle" font-size="13" font-weight="700" fill="#093B5F">Fan-out  1 → N  (central → POS)</text>
+  <line x1="424" y1="298" x2="673" y2="298" stroke="#00C895" stroke-width="9" marker-end="url(#arrGreen)"/>
+
+  <rect x="470" y="312" width="172" height="26" rx="13" fill="#093B5F"/>
+  <text x="556" y="329" text-anchor="middle" font-size="12" font-weight="700" class="white">VPN Bridge × 1500</text>
+
+  <line x1="686" y1="362" x2="437" y2="362" stroke="#093B5F" stroke-width="9" marker-end="url(#arrBlue)"/>
+  <text x="556" y="390" text-anchor="middle" font-size="13" font-weight="700" fill="#093B5F">Fan-in  N → 1  (POS → central)</text>
+  <text x="556" y="410" text-anchor="middle" font-size="10.5" class="sub">bridge initiated by the edge / local broker</text>
+
+  <!-- ============ Legend: scenarios ============ -->
+  <text x="32" y="552" font-size="14" class="h">Test scenarios (boundary cases)</text>
+
+  <rect x="32" y="568" width="368" height="56" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="32" y="570" width="6" height="52" rx="3" fill="#00C895"/>
+  <text x="52" y="594" font-size="13.5" class="h">Scenario 1 · Fan-out</text>
+  <text x="52" y="614" font-size="12" class="sub">1 → 1500  ·  23 MB/file  ·  ~34.5 GB aggregate</text>
+
+  <rect x="416" y="568" width="368" height="56" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="416" y="570" width="6" height="52" rx="3" fill="#00C895"/>
+  <text x="436" y="594" font-size="13.5" class="h">Scenario 2 · Fan-out</text>
+  <text x="436" y="614" font-size="12" class="sub">1 → 500  ·  200 MB/file  ·  ~100 GB aggregate</text>
+
+  <rect x="800" y="568" width="368" height="56" rx="10" fill="#FFFFFF" stroke="#D6D6D6" stroke-width="1.5"/>
+  <rect x="800" y="570" width="6" height="52" rx="3" fill="#093B5F"/>
+  <text x="820" y="594" font-size="13.5" class="h">Scenario 3 · Fan-in</text>
+  <text x="820" y="614" font-size="12" class="sub">1500 → 1  ·  10 MB/file  ·  ~15 GB aggregate</text>
+
+  <!-- order callout -->
+  <rect x="32" y="640" width="1136" height="32" rx="8" fill="#FFF7C2" stroke="#FCA829" stroke-width="1.5"/>
+  <rect x="32" y="642" width="6" height="28" rx="3" fill="#FCA829"/>
+  <text x="52" y="660" font-size="12.5" font-weight="600" fill="#093B5F">Strong requirement — file ordering is preserved per POS, in both directions (fan-out and fan-in).</text>
+</svg>
