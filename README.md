@@ -204,6 +204,7 @@ config/source-gcs/            # source: application.yml + file_paths.cfg
 config/sink-{a,b,c}-sftp/     # sinks (flat output to /outbound)
 config/sftp/dest.sftp.json    # SFTP server users/dirs (demo/demo, /outbound)
 scripts/verify.sh             # health + queue check
+docs/PERF-TEST-REPORT.md      # in-cloud performance results (throughput, fanout, file-count sweep)
 ```
 
 ## 10. Stop / clean up
